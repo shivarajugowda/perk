@@ -1,0 +1,35 @@
+# Default values for perk.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+REDIS_URL : "redis://redis-master:6379/0"
+
+image:
+  repository: shivarajugowda/perk
+  pullPolicy: Always # IfNotPresent
+
+gateway:
+  app : "app.gateway:app"
+  threads : 2
+  service:
+    type: LoadBalancer # LoadBalancer, ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 0.1
+      memory: 100Mi
+
+# K8S Service account needed to monitor and update(AutoScale) Presto deployments.
+# kubectl create serviceaccount prestosvcact --namespace default
+# kubectl create clusterrolebinding presto-admin-binding --clusterrole=cluster-admin --serviceaccount=default:prestosvcact
+worker:
+  k8sSvcAccount : prestosvcact
+  app : "app.worker"
+  threads : 20
+  resources:
+    requests:
+      cpu: 0.5
+      memory: 1000Mi
+
+
+

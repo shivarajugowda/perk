@@ -1,0 +1,44 @@
+version: '3.7'
+
+services:
+  redis:
+    image: 'bitnami/redis:latest'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 6379:6379
+    logging:
+      driver: none
+
+  presto:
+    image: 'prestosql/presto:328'
+    ports:
+      - 8080:8080
+    logging:
+      driver: none
+
+  gateway:
+    build: ./src
+    command: /usr/venv/bin/uvicorn app.gateway:app --reload --workers 2 --host 0.0.0.0 --port 8000  --log-level error
+    volumes:
+      - ./src/:/usr/src/
+    ports:
+      - 8000:8000
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - GATEWAY_SERVICE=localhost:8000
+      - MANAGE_PRESTO_SERVICE=false
+
+  worker:
+    build: ./src
+    command: python app/worker.py
+    volumes:
+      - ./src/:/usr/src/
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - GATEWAY_SERVICE=localhost:8000
+      - MANAGE_PRESTO_SERVICE=false
+      - PRESTO_SVC=presto
+
+
+

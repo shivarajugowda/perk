@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "perk.fullname" . }}-env
+  labels:
+    component: env
+data:
+  REDIS_URL: "{{ .Values.REDIS_URL }}"
+  GATEWAY_SERVICE: '{{ template "perk.fullname" . }}-gateway:{{ .Values.gateway.service.port }}'
+  MANAGE_PRESTO_SERVICE: "true"

@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "perk.fullname" . }}-worker
+  labels:
+    component: worker
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "perk.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "perk.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        component: worker
+    spec:
+      serviceAccountName: {{ .Values.worker.k8sSvcAccount }}
+      containers:
+        - name: {{ .Chart.Name }}-worker
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+          envFrom:
+            - configMapRef:
+                name: "{{ template "perk.fullname" . }}-env"
+          command: ["python"]
+          args:
+            - 'app/worker.py'
+          resources:
+{{ toYaml .Values.worker.resources | indent 12 }}
+    {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.worker.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.worker.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+
+--- # Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ template "perk.fullname" . }}-worker-scaler
+  labels:
+    component: worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ template "perk.fullname" . }}-worker
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 60

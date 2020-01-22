@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "presto.fullname" . }}
+  labels:
+    app: {{ template "presto.name" . }}
+    chart: {{ template "presto.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.owner.uid }}
+  ownerReferences:
+    - apiVersion: apps/v1
+      kind: Pod
+      uid: {{ .Values.owner.uid }}
+      name: {{ .Values.owner.name }}
+      controller: true
+      blockOwnerDeletion: true
+{{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.server.config.http.port }}
+      targetPort: http-coord
+      protocol: TCP
+      name: http-coord
+  selector:
+    app: {{ template "presto.name" . }}
+    release: {{ .Release.Name }}
+    component: coordinator
